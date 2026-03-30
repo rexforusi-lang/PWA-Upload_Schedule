@@ -5,8 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Google Drive 共用檔案 PWA，支援上傳、檔案檢視、刪除、帳戶設定維護與 GitHub 版本檢查。">
-  <title>Drive Share Hub V0.5</title>
+  <meta name="description" content="Google Drive 共用檔案 PWA，支援多檔上傳、檔案檢視、刪除、帳戶設定維護與 GitHub 版本檢查。">
+  <title>Drive Share Hub V0.6</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -19,7 +19,7 @@
     <header class="topbar">
       <div>
         <h1 id="appHeading">Drive Share Hub</h1>
-        <p class="muted"><span id="versionLabel">V0.5</span> ・ GitHub Pages / PWA / Google Drive</p>
+        <p class="muted"><span id="versionLabel">V0.6</span> ・ GitHub Pages / PWA / Google Drive</p>
       </div>
       <div class="topbar-actions">
         <button id="checkUpdateBtn" class="ghost-btn" type="button">檢查更新</button>
@@ -43,35 +43,35 @@
             <div class="card-header">
               <div>
                 <h2>上傳區</h2>
-                <p class="muted">單檔上限 100 MB，使用 Google Drive 可續傳上傳。</p>
+                <p class="muted">單檔上限 100 MB，可一次選取多個檔案並依序上傳到 Google Drive。</p>
               </div>
               <div class="status-area">
                 <span id="authStateBadge" class="status-badge">尚未登入</span>
-                <small id="authStateSubtext" class="muted status-subtext">尚未取得 Google 授權</small>
+                <small id="authStateSubtext" class="muted status-subtext">請到帳戶 / API 設定頁登入 Google</small>
               </div>
             </div>
 
-            <div class="toolbar wrap auth-toolbar">
-              <button id="loginBtn" class="primary-btn" type="button">登入 Google</button>
-              <button id="logoutBtn" class="ghost-btn hidden" type="button">登出</button>
-              <button id="refreshBtn" class="ghost-btn hidden" type="button">重新整理</button>
+            <div class="selector-panel">
+              <input id="fileInput" type="file" multiple class="hidden-input">
+              <div class="toolbar wrap action-toolbar">
+                <button id="pickFilesBtn" class="primary-btn" type="button">選擇多個檔案</button>
+                <button id="clearFileBtn" class="ghost-btn" type="button">清除選取</button>
+              </div>
+              <div class="selected-summary card-lite">
+                <div class="summary-row"><span>已選檔案數</span><strong id="selectedCount">0</strong></div>
+                <div class="summary-row"><span>總大小</span><strong id="selectedTotalSize">0.00 MB</strong></div>
+                <div class="summary-row summary-column">
+                  <span>已選檔案清單</span>
+                  <ul id="selectedFilesPreview" class="selected-files-list">
+                    <li class="muted">尚未選取檔案</li>
+                  </ul>
+                </div>
+                <div class="summary-row"><span>目標資料夾</span><strong id="metaFolder">未設定</strong></div>
+              </div>
             </div>
 
-            <label class="file-drop" for="fileInput">
-              <input id="fileInput" type="file">
-              <span id="selectedFileLabel">拖曳檔案到此，或點擊選取檔案</span>
-              <small>支援單一檔案上傳；超過 5 MB 自動使用可續傳流程。</small>
-            </label>
-
-            <div class="upload-meta">
-              <div class="kv"><span>檔名</span><strong id="metaName">—</strong></div>
-              <div class="kv"><span>大小</span><strong id="metaSize">—</strong></div>
-              <div class="kv"><span>目標資料夾</span><strong id="metaFolder">未設定</strong></div>
-            </div>
-
-            <div class="toolbar wrap action-toolbar">
+            <div class="toolbar wrap action-toolbar bottom-actions">
               <button id="uploadBtn" class="primary-btn" type="button">開始上傳</button>
-              <button id="clearFileBtn" class="ghost-btn" type="button">清除選取</button>
             </div>
 
             <div class="progress-panel">
@@ -160,14 +160,23 @@
             </form>
           </section>
 
-          <section class="card">
+          <section class="card auth-card">
             <div class="card-header">
               <div>
-                <h2>登入帳戶資訊</h2>
-                <p class="muted">用於維護該 PWA 使用帳戶與目標資料夾狀態。</p>
+                <h2>Google 使用者登入</h2>
+                <p class="muted">請先在此頁完成 Google 授權，再回到檔案中心操作。</p>
               </div>
             </div>
             <div class="stack gap-md">
+              <div class="status-box">
+                <span id="settingsAuthBadge" class="status-badge">尚未登入</span>
+                <small id="settingsAuthSubtext" class="muted">尚未取得 Google 授權</small>
+              </div>
+              <div class="toolbar wrap settings-auth-toolbar">
+                <button id="loginBtn" class="primary-btn" type="button">登入 Google</button>
+                <button id="logoutBtn" class="ghost-btn hidden" type="button">登出</button>
+                <button id="refreshBtn" class="ghost-btn hidden" type="button">重新整理檔案</button>
+              </div>
               <div id="accountSummary" class="account-summary">
                 <div class="kv"><span>登入狀態</span><strong id="accountState">未登入</strong></div>
                 <div class="kv"><span>帳號</span><strong id="accountEmail">—</strong></div>
@@ -175,7 +184,7 @@
                 <div class="kv"><span>目標資料夾</span><strong id="accountFolder">—</strong></div>
                 <div class="kv"><span>資料夾可寫入</span><strong id="folderWritable">—</strong></div>
                 <div class="kv"><span>資料夾可刪除</span><strong id="folderDeletable">—</strong></div>
-                <div class="kv"><span>目前版本</span><strong id="currentVersionText">V0.5</strong></div>
+                <div class="kv"><span>目前版本</span><strong id="currentVersionText">V0.6</strong></div>
                 <div class="kv"><span>遠端版本</span><strong id="remoteVersionText">尚未檢查</strong></div>
               </div>
               <div>
