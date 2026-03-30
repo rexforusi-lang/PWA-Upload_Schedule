@@ -5,8 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Google Drive 共用檔案 PWA，支援上傳、檔案檢視、刪除與帳戶設定維護。">
-  <title>Drive Share Hub V0.1</title>
+  <meta name="description" content="Google Drive 共用檔案 PWA，支援上傳、檔案檢視、刪除、帳戶設定維護與 GitHub 版本檢查。">
+  <title>Drive Share Hub V0.2</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -18,10 +18,11 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <h1>Drive Share Hub</h1>
-        <p class="muted">V0.1 ・ GitHub Pages / PWA / Google Drive</p>
+        <h1 id="appHeading">Drive Share Hub</h1>
+        <p class="muted"><span id="versionLabel">V0.2</span> ・ GitHub Pages / PWA / Google Drive</p>
       </div>
       <div class="topbar-actions">
+        <button id="checkUpdateBtn" class="ghost-btn" type="button">檢查更新</button>
         <button id="themeToggleBtn" class="ghost-btn" type="button" aria-label="切換主題">🌙 深色</button>
         <button id="installBtn" class="primary-btn hidden" type="button">安裝 App</button>
       </div>
@@ -34,6 +35,7 @@
 
     <main>
       <section id="noticeBar" class="notice hidden"></section>
+      <section id="updateBanner" class="notice hidden"></section>
 
       <section id="filesView" class="view active">
         <div class="grid two-col">
@@ -43,7 +45,10 @@
                 <h2>上傳區</h2>
                 <p class="muted">單檔上限 100 MB，使用 Google Drive 可續傳上傳。</p>
               </div>
-              <span id="authStateBadge" class="status-badge">尚未登入</span>
+              <div class="status-area">
+                <span id="authStateBadge" class="status-badge">尚未登入</span>
+                <small id="authStateSubtext" class="muted status-subtext">尚未取得 Google 授權</small>
+              </div>
             </div>
             <div class="stack gap-md">
               <div class="toolbar wrap">
@@ -167,6 +172,8 @@
                 <div class="kv"><span>目標資料夾</span><strong id="accountFolder">—</strong></div>
                 <div class="kv"><span>資料夾可寫入</span><strong id="folderWritable">—</strong></div>
                 <div class="kv"><span>資料夾可刪除</span><strong id="folderDeletable">—</strong></div>
+                <div class="kv"><span>目前版本</span><strong id="currentVersionText">V0.2</strong></div>
+                <div class="kv"><span>遠端版本</span><strong id="remoteVersionText">尚未檢查</strong></div>
               </div>
               <div>
                 <h3>資料夾權限摘要</h3>
