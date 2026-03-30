@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'drive-share-hub-v0.6';
+const CACHE_NAME = 'drive-share-hub-v0.7';
 const APP_ASSETS = ['./','index.html','app.css','app.js','manifest.json','offline.html','version.json','icon-192.png','icon-512.png'];
 self.addEventListener('install', event => {
   self.skipWaiting();

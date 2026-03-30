@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
   <meta name="description" content="Google Drive 共用檔案 PWA，支援多檔上傳、檔案檢視、刪除、帳戶設定維護與 GitHub 版本檢查。">
-  <title>Drive Share Hub V0.6</title>
+  <title>Drive Share Hub V0.7</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -19,7 +19,7 @@
     <header class="topbar">
       <div>
         <h1 id="appHeading">Drive Share Hub</h1>
-        <p class="muted"><span id="versionLabel">V0.6</span> ・ GitHub Pages / PWA / Google Drive</p>
+        <p class="muted"><span id="versionLabel">V0.7</span> ・ GitHub Pages / PWA / Google Drive</p>
       </div>
       <div class="topbar-actions">
         <button id="checkUpdateBtn" class="ghost-btn" type="button">檢查更新</button>
@@ -76,9 +76,9 @@
 
             <div class="progress-panel">
               <progress id="uploadProgress" value="0" max="100"></progress>
-              <div class="progress-texts">
-                <span id="uploadProgressText">0%</span>
-                <span id="uploadStatusText" class="muted">等待上傳</span>
+              <div class="progress-footer">
+                <span id="uploadProgressText" class="progress-percentage">0%</span>
+                <span id="uploadStatusText" class="muted progress-status">等待上傳</span>
               </div>
             </div>
           </section>
@@ -97,6 +97,7 @@
                   <option value="name_asc">檔名（A→Z）</option>
                   <option value="size_desc">檔案大小（大到小）</option>
                 </select>
+                <button id="refreshBtn" class="ghost-btn hidden" type="button">重新整理頁面</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -175,7 +176,6 @@
               <div class="toolbar wrap settings-auth-toolbar">
                 <button id="loginBtn" class="primary-btn" type="button">登入 Google</button>
                 <button id="logoutBtn" class="ghost-btn hidden" type="button">登出</button>
-                <button id="refreshBtn" class="ghost-btn hidden" type="button">重新整理檔案</button>
               </div>
               <div id="accountSummary" class="account-summary">
                 <div class="kv"><span>登入狀態</span><strong id="accountState">未登入</strong></div>
@@ -184,7 +184,7 @@
                 <div class="kv"><span>目標資料夾</span><strong id="accountFolder">—</strong></div>
                 <div class="kv"><span>資料夾可寫入</span><strong id="folderWritable">—</strong></div>
                 <div class="kv"><span>資料夾可刪除</span><strong id="folderDeletable">—</strong></div>
-                <div class="kv"><span>目前版本</span><strong id="currentVersionText">V0.6</strong></div>
+                <div class="kv"><span>目前版本</span><strong id="currentVersionText">V0.7</strong></div>
                 <div class="kv"><span>遠端版本</span><strong id="remoteVersionText">尚未檢查</strong></div>
               </div>
               <div>
