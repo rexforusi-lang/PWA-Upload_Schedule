@@ -60,7 +60,7 @@ button { cursor: pointer; }
 .status-area { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
 .status-badge { padding: 8px 12px; border-radius: 999px; background: color-mix(in oklab, var(--surface) 88%, var(--border) 12%); color: var(--muted); white-space: nowrap; }
 .status-badge.logged-in { background: color-mix(in oklab, var(--success) 18%, var(--surface) 82%); color: var(--success); border: 1px solid color-mix(in oklab, var(--success) 50%, var(--surface) 50%); }
-.status-subtext { text-align:right; max-width: 200px; }
+.status-subtext { text-align:right; max-width: 220px; overflow-wrap:anywhere; }
 .file-drop { display: flex; flex-direction: column; gap: 8px; border: 2px dashed var(--border); border-radius: 18px; padding: 22px; background: var(--surface-soft); text-align: center; }
 .file-drop.dragover { border-color: var(--accent); }
 .file-drop input[type="file"] { display: none; }
@@ -83,6 +83,8 @@ thead { position: sticky; top: 0; z-index: 1; background: var(--surface-soft); }
 th, td { padding: 14px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
 .filename-cell { max-width: 320px; overflow-wrap: anywhere; font-weight: 700; }
 .empty { text-align: center; color: var(--muted); }
+.empty.error { color: var(--danger); }
+.empty.loading { color: var(--accent); }
 .table-action { min-width: 74px; }
 form label { display: grid; gap: 8px; }
 form label span { font-weight: 700; }
