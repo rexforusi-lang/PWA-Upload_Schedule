@@ -5,8 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Google Drive 共用檔案 PWA，支援多檔上傳、檔案檢視、刪除、帳戶設定維護與 GitHub 版本檢查。">
-  <title>Drive Share Hub V0.7</title>
+  <meta name="description" content="Google Drive 共用檔案 PWA，支援多檔上傳、檔案檢視、批次刪除、帳戶設定維護與 GitHub 版本檢查。">
+  <title>Drive Share Hub V0.8</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -19,7 +19,7 @@
     <header class="topbar">
       <div>
         <h1 id="appHeading">Drive Share Hub</h1>
-        <p class="muted"><span id="versionLabel">V0.7</span> ・ GitHub Pages / PWA / Google Drive</p>
+        <p class="muted"><span id="versionLabel">V0.8</span> ・ GitHub Pages / PWA / Google Drive</p>
       </div>
       <div class="topbar-actions">
         <button id="checkUpdateBtn" class="ghost-btn" type="button">檢查更新</button>
@@ -100,10 +100,22 @@
                 <button id="refreshBtn" class="ghost-btn hidden" type="button">重新整理頁面</button>
               </div>
             </div>
-            <div class="table-wrap">
+
+            <div class="toolbar wrap bulk-toolbar">
+              <label class="select-all-wrap hidden" id="selectAllWrap">
+                <input id="selectAllCheckbox" type="checkbox">
+                <span>全選可刪除檔案</span>
+              </label>
+              <span id="selectedDeleteCount" class="muted">已選 0 個檔案</span>
+              <button id="deleteSelectedBtn" class="ghost-btn danger hidden" type="button">刪除選取檔案</button>
+            </div>
+            <div class="mobile-scroll-hint" id="mobileScrollHint">手機可左右滑動檢視更多欄位</div>
+
+            <div class="table-wrap" id="tableWrap">
               <table>
                 <thead>
                   <tr>
+                    <th class="select-col">選取</th>
                     <th>檔名</th>
                     <th>上傳日期</th>
                     <th>上傳時間</th>
@@ -115,7 +127,7 @@
                   </tr>
                 </thead>
                 <tbody id="filesTbody">
-                  <tr><td colspan="8" class="empty">請先完成設定並登入。</td></tr>
+                  <tr><td colspan="9" class="empty">請先完成設定並登入。</td></tr>
                 </tbody>
               </table>
             </div>
@@ -184,7 +196,7 @@
                 <div class="kv"><span>目標資料夾</span><strong id="accountFolder">—</strong></div>
                 <div class="kv"><span>資料夾可寫入</span><strong id="folderWritable">—</strong></div>
                 <div class="kv"><span>資料夾可刪除</span><strong id="folderDeletable">—</strong></div>
-                <div class="kv"><span>目前版本</span><strong id="currentVersionText">V0.7</strong></div>
+                <div class="kv"><span>目前版本</span><strong id="currentVersionText">V0.8</strong></div>
                 <div class="kv"><span>遠端版本</span><strong id="remoteVersionText">尚未檢查</strong></div>
               </div>
               <div>
@@ -208,6 +220,7 @@
 
   <template id="fileRowTemplate">
     <tr>
+      <td class="select-cell"></td>
       <td class="filename-cell"></td>
       <td class="date-cell"></td>
       <td class="time-cell"></td>

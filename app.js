@@ -1,5 +1,5 @@
 
-const APP_VERSION = 'V0.7';
+const APP_VERSION = 'V0.8';
 const VERSION_ENDPOINT = 'version.json';
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const RESUMABLE_CHUNK_SIZE = 8 * 1024 * 1024;
@@ -25,6 +25,7 @@ const state = {
   remoteVersion: null,
   swRegistration: null,
   authCache: { accessToken: '', expiresAt: 0, user: null },
+  selectedDeleteIds: new Set(),
 };
 
 const el = {
@@ -74,6 +75,10 @@ const el = {
   remoteVersionText: document.getElementById('remoteVersionText'),
   appHeading: document.getElementById('appHeading'),
   versionLabel: document.getElementById('versionLabel'),
+  selectAllWrap: document.getElementById('selectAllWrap'),
+  selectAllCheckbox: document.getElementById('selectAllCheckbox'),
+  selectedDeleteCount: document.getElementById('selectedDeleteCount'),
+  deleteSelectedBtn: document.getElementById('deleteSelectedBtn'),
 };
 
 const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
@@ -127,7 +132,7 @@ function showUpdateBanner(message, canReload = false) {
 }
 function hideUpdateBanner() { el.updateBanner.classList.add('hidden'); el.updateBanner.innerHTML = ''; }
 function switchView(viewId) { tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.view === viewId)); views.forEach((view) => view.classList.toggle('active', view.id === viewId)); }
-function renderTableMessage(message, cssClass = '') { el.filesTbody.innerHTML = `<tr><td colspan="8" class="empty ${cssClass}">${message}</td></tr>`; }
+function renderTableMessage(message, cssClass = '') { el.filesTbody.innerHTML = `<tr><td colspan="9" class="empty ${cssClass}">${message}</td></tr>`; updateBulkDeleteUi([]); }
 function syncSettingsForm() {
   el.clientIdInput.value = state.settings.clientId || '';
   el.apiKeyInput.value = state.settings.apiKey || '';
@@ -186,6 +191,26 @@ function updateAuthUi() {
   el.accountState.textContent = loggedIn ? '已登入' : '未登入';
   el.accountEmail.textContent = state.user?.email || (loggedIn ? '已授權但尚未讀到 Email' : '—');
   el.accountName.textContent = state.user?.name || (loggedIn ? 'Google 帳戶' : '—');
+}
+function updateBulkDeleteUi(files) {
+  const deletableFiles = (files || []).filter((file) => file.capabilities?.canDelete);
+  if (!deletableFiles.length) {
+    state.selectedDeleteIds.clear();
+    el.selectAllCheckbox.checked = false;
+    el.selectAllCheckbox.indeterminate = false;
+    el.selectAllWrap.classList.add('hidden');
+    el.deleteSelectedBtn.classList.add('hidden');
+    el.selectedDeleteCount.textContent = '已選 0 個檔案';
+    return;
+  }
+  el.selectAllWrap.classList.remove('hidden');
+  const existingIds = new Set(deletableFiles.map((file) => file.id));
+  state.selectedDeleteIds = new Set([...state.selectedDeleteIds].filter((id) => existingIds.has(id)));
+  const selectedCount = state.selectedDeleteIds.size;
+  el.selectedDeleteCount.textContent = `已選 ${selectedCount} 個檔案`;
+  el.deleteSelectedBtn.classList.toggle('hidden', selectedCount === 0);
+  el.selectAllCheckbox.checked = selectedCount > 0 && selectedCount === deletableFiles.length;
+  el.selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < deletableFiles.length;
 }
 async function initializeGoogleClients(force = false) {
   const validation = validateSettings(); if (validation) throw new Error(validation); if (!state.gapiReady || !state.gisReady) throw new Error('Google SDK 尚未載入完成，請稍後再試。'); if (state.initialized && !force) return;
@@ -263,12 +288,26 @@ function renderFiles(files) {
   const list = Array.isArray(files) ? files : []; const finalList = getFilteredFilesFrom(list); el.filesTbody.innerHTML = '';
   if (!state.accessToken) return renderTableMessage('請先完成設定並登入。');
   if (!state.folderMeta) return renderTableMessage('請先測試資料夾權限或重新整理。', 'error');
-  if (!finalList.length) return renderTableMessage('目前沒有可顯示的檔案。');
+  if (!finalList.length) { updateBulkDeleteUi([]); return renderTableMessage('目前沒有可顯示的檔案。'); }
   const fragment = document.createDocumentFragment();
   for (const file of finalList) {
     const row = el.fileRowTemplate.content.firstElementChild.cloneNode(true);
     const owner = file.owners?.[0]?.displayName || file.owners?.[0]?.emailAddress || '—';
     const dt = formatDateTime(file.createdTime);
+    const selectCell = row.querySelector('.select-cell');
+    if (file.capabilities?.canDelete) {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = state.selectedDeleteIds.has(file.id);
+      checkbox.addEventListener('change', (event) => {
+        if (event.target.checked) state.selectedDeleteIds.add(file.id);
+        else state.selectedDeleteIds.delete(file.id);
+        updateBulkDeleteUi(finalList.filter((item) => item.capabilities?.canDelete));
+      });
+      selectCell.appendChild(checkbox);
+    } else {
+      selectCell.textContent = '—';
+    }
     row.querySelector('.filename-cell').textContent = file.name || '未命名檔案';
     row.querySelector('.date-cell').textContent = dt.date;
     row.querySelector('.time-cell').textContent = dt.time;
@@ -281,6 +320,7 @@ function renderFiles(files) {
     fragment.appendChild(row);
   }
   el.filesTbody.appendChild(fragment);
+  updateBulkDeleteUi(finalList.filter((item) => item.capabilities?.canDelete));
 }
 async function refreshFiles() {
   const validation = validateSettings(); if (validation) throw new Error(validation); if (!state.accessToken) throw new Error('請先登入 Google。'); if (!state.folderMeta) await validateAndLoadFolderMeta();
@@ -289,9 +329,9 @@ async function refreshFiles() {
   const params = buildDriveQueryParams({ q: query, pageSize: '200', orderBy: 'createdTime desc', fields: 'files(id,name,size,createdTime,fileExtension,owners(displayName,emailAddress),capabilities(canDelete))' });
   try {
     const res = await googleApiFetch(`https://www.googleapis.com/drive/v3/files?${params.toString()}`);
-    const data = await res.json(); state.files = data.files || []; renderFiles(state.files); return state.files;
+    const data = await res.json(); state.files = data.files || []; state.selectedDeleteIds.clear(); renderFiles(state.files); return state.files;
   } catch (error) {
-    state.files = []; const message = driveErrorToMessage(error, '檔案清單'); renderTableMessage(`檔案清單讀取失敗：${message}`, 'error'); throw new Error(message);
+    state.files = []; state.selectedDeleteIds.clear(); const message = driveErrorToMessage(error, '檔案清單'); renderTableMessage(`檔案清單讀取失敗：${message}`, 'error'); throw new Error(message);
   }
 }
 async function handleTokenResponse(response) {
@@ -307,11 +347,11 @@ async function login() { clearNotice(); await initializeGoogleClients(); renderT
 function logout() {
   if (state.accessToken && google?.accounts?.oauth2) {
     google.accounts.oauth2.revoke(state.accessToken, () => {
-      state.accessToken = null; state.user = null; state.folderMeta = null; state.files = []; clearAuthCache();
+      state.accessToken = null; state.user = null; state.folderMeta = null; state.files = []; state.selectedDeleteIds.clear(); clearAuthCache();
       try { if (window.gapi?.client?.setToken) gapi.client.setToken(null); } catch (error) { console.warn('清空 gapi token 失敗', error); }
       updateAuthUi(); renderTableMessage('請先完成設定並登入。'); el.permissionSummary.textContent = '尚未讀取。'; el.folderWritable.textContent = '—'; el.folderDeletable.textContent = '—'; showNotice('已登出 Google 帳號。');
     });
-  } else { state.accessToken = null; state.user = null; state.folderMeta = null; state.files = []; clearAuthCache(); updateAuthUi(); renderTableMessage('請先完成設定並登入。'); }
+  } else { state.accessToken = null; state.user = null; state.folderMeta = null; state.files = []; state.selectedDeleteIds.clear(); clearAuthCache(); updateAuthUi(); renderTableMessage('請先完成設定並登入。'); }
 }
 async function trySilentTokenRefresh() {
   if (!state.gapiReady || !state.gisReady) return false; await initializeGoogleClients();
@@ -333,7 +373,7 @@ async function maybeBootstrapAuth() {
   const restored = restoreCachedAuthIfPossible();
   if (restored) { try { await bootstrapAfterAuthenticated({ silentNotice: true }); return; } catch (error) { console.warn('使用快取 token 同步資料失敗，改嘗試靜默更新', error); } }
   if (state.authCache.user) { state.user = state.authCache.user; updateAuthUi(); }
-  const refreshed = await trySilentTokenRefresh(); if (!refreshed) { state.accessToken = null; state.folderMeta = null; state.files = []; updateAuthUi(); renderTableMessage('請先完成設定並登入。'); }
+  const refreshed = await trySilentTokenRefresh(); if (!refreshed) { state.accessToken = null; state.folderMeta = null; state.files = []; state.selectedDeleteIds.clear(); updateAuthUi(); renderTableMessage('請先完成設定並登入。'); }
 }
 async function uploadSingleFile(file, uploadedBytesBefore, totalBytes, index, totalFiles) {
   const metadata = { name: file.name, parents: [state.settings.folderId] };
@@ -364,6 +404,18 @@ async function downloadFile(file) {
 }
 async function deleteFile(file) {
   clearNotice(); if (!window.confirm(`確定要刪除「${file.name}」嗎？`)) return; const params = buildDriveQueryParams(); await googleApiFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?${params.toString()}`, { method: 'DELETE' }); showNotice(`檔案「${file.name}」已刪除。`, 'success'); await refreshFiles();
+}
+async function deleteSelectedFiles() {
+  const targets = state.files.filter((file) => state.selectedDeleteIds.has(file.id) && file.capabilities?.canDelete);
+  if (!targets.length) throw new Error('請先勾選至少一個可刪除的檔案。');
+  if (!window.confirm(`確定要一次刪除 ${targets.length} 個檔案嗎？`)) return;
+  for (const file of targets) {
+    const params = buildDriveQueryParams();
+    await googleApiFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?${params.toString()}`, { method: 'DELETE' });
+  }
+  state.selectedDeleteIds.clear();
+  showNotice(`已刪除 ${targets.length} 個檔案。`, 'success');
+  await refreshFiles();
 }
 async function handleTestConnection() {
   clearNotice(); await initializeGoogleClients(); if (!state.accessToken) { showNotice('請先點「登入 Google」，授權後再測試連線。'); return; }
@@ -415,11 +467,20 @@ function bindEvents() {
   el.uploadBtn.addEventListener('click', async () => { try { await uploadFiles(); } catch (error) { updateUploadProgress(0, '等待上傳'); showNotice(error.message, 'error'); } });
   el.searchInput.addEventListener('input', () => renderFiles(state.files));
   el.sortSelect.addEventListener('change', () => renderFiles(state.files));
+  el.selectAllCheckbox.addEventListener('change', () => {
+    const deletableIds = state.files.filter((file) => file.capabilities?.canDelete).map((file) => file.id);
+    if (el.selectAllCheckbox.checked) state.selectedDeleteIds = new Set(deletableIds);
+    else state.selectedDeleteIds.clear();
+    renderFiles(state.files);
+  });
+  el.deleteSelectedBtn.addEventListener('click', async () => {
+    try { await deleteSelectedFiles(); } catch (error) { showNotice(error.message, 'error'); }
+  });
   el.settingsForm.addEventListener('submit', (event) => {
     event.preventDefault(); clearNotice(); state.settings = getSettingsFromForm(); saveSettings(); syncSettingsForm(); state.initialized = false; state.folderMeta = null; showNotice('本機設定已儲存。若剛調整 Client ID / API Key，請重新登入 Google。', 'success'); maybeBootstrapAuth();
   });
   el.testConnectionBtn.addEventListener('click', async () => { try { await handleTestConnection(); } catch (error) { showNotice(error.message, 'error'); renderTableMessage(`測試連線失敗：${error.message}`, 'error'); } });
-  el.clearSettingsBtn.addEventListener('click', () => { localStorage.removeItem(SETTINGS_KEY); state.settings = { clientId: '', apiKey: '', folderId: '', appTitle: '', supportsAllDrives: true }; syncSettingsForm(); state.initialized = false; state.folderMeta = null; showNotice('本機設定已清除。'); });
+  el.clearSettingsBtn.addEventListener('click', () => { localStorage.removeItem(SETTINGS_KEY); state.settings = { clientId: '', apiKey: '', folderId: '', appTitle: '', supportsAllDrives: true }; syncSettingsForm(); state.initialized = false; state.folderMeta = null; state.selectedDeleteIds.clear(); showNotice('本機設定已清除。'); });
 }
 async function init() {
   loadSettings(); loadTheme(); loadAuthCache(); syncSettingsForm(); updateAuthUi(); updateSelectedFilesUI(); resetUploadProgress(); bindEvents(); await registerServiceWorker(); setupInstallPrompt(); setupGoogleLoaderWatchers(); await checkForUpdates({ silent: true }); if (!state.accessToken) renderTableMessage('請先完成設定並登入。');
